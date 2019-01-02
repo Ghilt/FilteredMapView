@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">FilteredMapView</string>
+    <string name="title_activity_filtered_map">Map</string>
+</resources>
