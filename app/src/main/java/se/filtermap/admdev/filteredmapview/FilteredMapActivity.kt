@@ -2,6 +2,8 @@ package se.filtermap.admdev.filteredmapview
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.design.widget.BottomSheetBehavior
+import android.support.v4.widget.NestedScrollView
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -10,9 +12,12 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.android.synthetic.main.activity_filtered_map.*
 
 class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
+    //TODO Utilize sheet callback or remove bottomSheetBehavior
+    private lateinit var mBottomSheetBehavior: BottomSheetBehavior<NestedScrollView>
     private lateinit var mMap: GoogleMap
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,6 +27,8 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager
                 .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        mBottomSheetBehavior = BottomSheetBehavior.from(bottom_sheet)
     }
 
     /**

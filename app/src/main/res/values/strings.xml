@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">FilteredMapView</string>
     <string name="title_activity_filtered_map">Map</string>
+    <string name="settings_title">Parameters</string>
+
+
+    <!--Accessability and content descriptions-->
+    <string name="bottom_sheet_content_description_expand_handle">Swipe expand collapse indicator</string>
+
 </resources>
