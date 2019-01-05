@@ -27,6 +27,6 @@
         android:id="@+id/bottom_sheet_seek_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:max="100"
+        android:max="@integer/parameter_population_max"
         android:layout_marginBottom="@dimen/bottom_sheet_settings_margin"/>
 </LinearLayout>
