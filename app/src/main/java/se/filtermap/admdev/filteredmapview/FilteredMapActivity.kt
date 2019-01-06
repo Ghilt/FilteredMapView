@@ -1,55 +1,65 @@
 package se.filtermap.admdev.filteredmapview
 
-import android.support.v7.app.AppCompatActivity
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.design.widget.BottomSheetBehavior
 import android.support.v4.widget.NestedScrollView
-import android.util.Log
+import android.support.v7.app.AppCompatActivity
 import android.widget.SeekBar
-
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.android.synthetic.main.activity_filtered_map.*
 import kotlinx.android.synthetic.main.settings_bottom_sheet_content.*
+import se.filtermap.admdev.filteredmapview.extensions.log
+import se.filtermap.admdev.filteredmapview.thread.CallbackLatch
+import se.filtermap.admdev.filteredmapview.viewmodel.FilterMapViewModel
+import se.filtermap.admdev.filteredmapview.viewmodel.TownMarker
+import kotlin.random.Random
 
 class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     //TODO Utilize sheet callback or remove bottomSheetBehavior
     private lateinit var mBottomSheetBehavior: BottomSheetBehavior<NestedScrollView>
     private lateinit var mMap: GoogleMap
+    private val mMarkerManager = TownMarkerManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_filtered_map)
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        val mapFragment = supportFragmentManager
-                .findFragmentById(R.id.map) as SupportMapFragment
-        mapFragment.getMapAsync(this)
+        val mapAndDataLoaded = CallbackLatch(2) {
+            val model = ViewModelProviders.of(this).get(FilterMapViewModel::class.java)
+            onMapAndDataLoaded(mMap, model.getPopulations().value)
+        }
+
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.filtered_map) as SupportMapFragment
+        mapFragment.getMapAsync(mapAndDataLoaded.track(::onMapReady))
 
         mBottomSheetBehavior = BottomSheetBehavior.from(bottom_sheet)
 
-        bottom_sheet_seek_bar.setOnSeekBarChangeListener( object : SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(v: SeekBar?, progress: Int, fromUser: Boolean) {
-                Log.d("temp", "progress $progress")
-                marker.position = LatLng(marker.position.latitude, marker.position.longitude + 0.2)
+        bottom_sheet_seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(v: SeekBar?, maxPopulation: Int, fromUser: Boolean) {
+                log("progress $maxPopulation")
+                val showAndHide = mMarkerManager.partition { town -> town.population < maxPopulation }
+                showAndHide.first.forEach { it.marker.isVisible = true }
+                showAndHide.second.forEach { it.marker.isVisible = false }
             }
 
-            override fun onStartTrackingTouch(p0: SeekBar?) {
-            }
+            override fun onStartTrackingTouch(v: SeekBar?) {}
 
-            override fun onStopTrackingTouch(p0: SeekBar?) {
-            }
+            override fun onStopTrackingTouch(v: SeekBar?) {}
 
         })
-    }
 
-    private lateinit var marker: Marker
+        val model = ViewModelProviders.of(this).get(FilterMapViewModel::class.java)
+        model.getPopulations().observe(this, Observer<List<Int>>(mapAndDataLoaded.track(::onPopulationDataLoaded)))
+
+    }
 
     /**
      * Manipulates the map once available.
@@ -62,13 +72,25 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
      */
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+        val laos = LatLng(36.1075, 120.46889)
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(laos))
+        log("Map ready")
 
-        // Add a marker in Sydney and move the camera
-        mMap.applyFilter(MapFilter(10000, 100000))
-        val sydney = LatLng(-34.0, 151.0)
-        val markerTest = MarkerOptions().position(sydney).title("Marker in Sydney").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-        marker = mMap.addMarker(markerTest)
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+    }
+
+    private fun onPopulationDataLoaded(populations: List<Int>?) {
+        log("Population data loaded ${populations?.size}")
+    }
+
+    private fun onMapAndDataLoaded(map: GoogleMap, populations: List<Int>?) {
+        populations?.apply {
+            for (city in this) {
+                val lat = Random.nextDouble(-30.0, 30.0)
+                val lng = Random.nextDouble(0.0, 150.0)
+                val town = MarkerOptions().position(LatLng(lat, lng)).title("city $lng")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                mMarkerManager.add(TownMarker(map.addMarker(town), city))
+            }
+        }
     }
 }
-
