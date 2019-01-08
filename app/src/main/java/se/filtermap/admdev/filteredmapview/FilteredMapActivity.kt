@@ -19,7 +19,7 @@ import kotlinx.android.synthetic.main.settings_bottom_sheet_content.*
 import se.filtermap.admdev.filteredmapview.extensions.log
 import se.filtermap.admdev.filteredmapview.thread.CallbackLatch
 import se.filtermap.admdev.filteredmapview.viewmodel.FilterMapViewModel
-import se.filtermap.admdev.filteredmapview.viewmodel.TownMarker
+import se.filtermap.admdev.filteredmapview.model.CityMarker
 import kotlin.random.Random
 
 class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -27,7 +27,7 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
     //TODO Utilize sheet callback or remove bottomSheetBehavior
     private lateinit var mBottomSheetBehavior: BottomSheetBehavior<NestedScrollView>
     private lateinit var mMap: GoogleMap
-    private val mMarkerManager = TownMarkerManager()
+    private val mMarkerManager = CityMarkerManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +45,7 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
         bottom_sheet_seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(v: SeekBar?, maxPopulation: Int, fromUser: Boolean) {
                 log("progress $maxPopulation")
-                val showAndHide = mMarkerManager.partition { town -> town.population < maxPopulation }
+                val showAndHide = mMarkerManager.partition { city -> city.population < maxPopulation }
                 showAndHide.first.forEach { it.marker.isVisible = true }
                 showAndHide.second.forEach { it.marker.isVisible = false }
             }
@@ -84,12 +84,12 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun onMapAndDataLoaded(map: GoogleMap, populations: List<Int>?) {
         populations?.apply {
-            for (city in this) {
+            for (cityPop in this) {
                 val lat = Random.nextDouble(-30.0, 30.0)
                 val lng = Random.nextDouble(0.0, 150.0)
-                val town = MarkerOptions().position(LatLng(lat, lng)).title("city $lng")
+                val city = MarkerOptions().position(LatLng(lat, lng)).title("city $lng")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                mMarkerManager.add(TownMarker(map.addMarker(town), city))
+                mMarkerManager.add(CityMarker(map.addMarker(city), cityPop))
             }
         }
     }
