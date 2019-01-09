@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:paddingTop="6dp"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp">
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
     <ImageView
         android:layout_width="wrap_content"
@@ -16,15 +17,32 @@
         android:contentDescription="@string/bottom_sheet_content_description_expand_handle"/>
 
     <TextView
+        android:id="@+id/bottom_sheet_min_pop_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/colorAccentWhite"
-        android:text="@string/settings_title"
         android:textSize="16sp"
-        android:layout_marginBottom="@dimen/bottom_sheet_settings_margin"/>
+        android:layout_marginBottom="@dimen/bottom_sheet_settings_margin"
+        tools:text="@string/population_min_title"/>
 
     <SeekBar
-        android:id="@+id/bottom_sheet_seek_bar"
+        android:id="@+id/bottom_sheet_min_pop_seek_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="@integer/parameter_population_max"
+        android:layout_marginBottom="@dimen/bottom_sheet_settings_margin"/>
+
+    <TextView
+        android:id="@+id/bottom_sheet_max_pop_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorAccentWhite"
+        android:textSize="16sp"
+        android:layout_marginBottom="@dimen/bottom_sheet_settings_margin"
+        tools:text="@string/population_max_title"/>
+
+    <SeekBar
+        android:id="@+id/bottom_sheet_max_pop_seek_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:max="@integer/parameter_population_max"

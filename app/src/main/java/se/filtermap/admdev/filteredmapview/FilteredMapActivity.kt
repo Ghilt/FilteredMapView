@@ -42,23 +42,37 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         mBottomSheetBehavior = BottomSheetBehavior.from(bottom_sheet)
 
-        bottom_sheet_seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        bottom_sheet_max_pop_seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(v: SeekBar?, maxPopulation: Int, fromUser: Boolean) {
-                log("progress $maxPopulation")
-                val showAndHide = mMarkerManager.partition { marker -> marker.city.population < maxPopulation }
-                showAndHide.first.forEach { it.marker.isVisible = true }
-                showAndHide.second.forEach { it.marker.isVisible = false }
+                bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, maxPopulation)
+                onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, maxPopulation)
             }
 
             override fun onStartTrackingTouch(v: SeekBar?) {}
 
             override fun onStopTrackingTouch(v: SeekBar?) {}
+        })
 
+        bottom_sheet_min_pop_seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(v: SeekBar?, minPopulation: Int, fromUser: Boolean) {
+                bottom_sheet_min_pop_title.text = getString(R.string.population_min_title, minPopulation)
+                onPopulationChanged(minPopulation, bottom_sheet_max_pop_seek_bar.progress)
+            }
+
+            override fun onStartTrackingTouch(v: SeekBar?) {}
+
+            override fun onStopTrackingTouch(v: SeekBar?) {}
         })
 
         val model = ViewModelProviders.of(this).get(FilterMapViewModel::class.java)
         model.getPopulations().observe(this, Observer<List<City>>(mapAndDataLoaded.track(::onPopulationDataLoaded)))
+    }
 
+    private fun onPopulationChanged(minPopulation: Int, maxPopulation: Int) {
+        bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, maxPopulation)
+        val showAndHide = mMarkerManager.partition { marker -> marker.city.population in minPopulation..maxPopulation }
+        showAndHide.first.forEach { it.marker.isVisible = true }
+        showAndHide.second.forEach { it.marker.isVisible = false }
     }
 
     /**
@@ -90,5 +104,7 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 mMarkerManager.add(CityMarker(map.addMarker(marker), city))
             }
         }
+        bottom_sheet_min_pop_seek_bar.setProgress(400000, true)
+        bottom_sheet_max_pop_seek_bar.setProgress(500000, true)
     }
 }
