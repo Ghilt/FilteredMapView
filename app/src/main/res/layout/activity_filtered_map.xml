@@ -28,7 +28,7 @@
         app:layout_behavior="@string/bottom_sheet_behavior"
         app:behavior_hideable="false"
         android:background="@color/colorPrimaryLight"
-        app:behavior_peekHeight="65dp">
+        app:behavior_peekHeight="125dp">
 
         <include layout="@layout/settings_bottom_sheet_content"/>
 
