@@ -16,6 +16,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.android.synthetic.main.activity_filtered_map.*
 import kotlinx.android.synthetic.main.settings_bottom_sheet_content.*
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 import se.filtermap.admdev.filteredmapview.extensions.log
 import se.filtermap.admdev.filteredmapview.model.City
 import se.filtermap.admdev.filteredmapview.model.CityMarker
@@ -69,10 +71,19 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun onPopulationChanged(minPopulation: Int, maxPopulation: Int) {
-        bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, maxPopulation)
-        val showAndHide = mMarkerManager.partition { marker -> marker.city.population in minPopulation..maxPopulation }
-        showAndHide.first.forEach { it.marker.isVisible = true }
-        showAndHide.second.forEach { it.marker.isVisible = false }
+        doAsync {
+            val showAndHide = mMarkerManager.partition { marker -> marker.city.population in minPopulation..maxPopulation }
+            val nowVisible = showAndHide.first.filter { !it.visible }
+            val nowHidden = showAndHide.second.filter { it.visible }
+            nowVisible.forEach { it.visible = true }
+            nowHidden.forEach { it.visible = false }
+
+            uiThread {
+                nowVisible.forEach{ m -> m.marker.isVisible = true}
+                nowHidden.forEach{ m -> m.marker.isVisible = false}
+            }
+        }
+
     }
 
     /**
@@ -101,7 +112,7 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
             for (city in this) {
                 val marker = MarkerOptions().position(LatLng(city.lat, city.lng)).title(city.name)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                mMarkerManager.add(CityMarker(map.addMarker(marker), city))
+                mMarkerManager.add(CityMarker(map.addMarker(marker), city, false))
             }
         }
         bottom_sheet_min_pop_seek_bar.setProgress(400000, true)
