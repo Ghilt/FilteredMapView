@@ -12,6 +12,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.android.synthetic.main.activity_filtered_map.*
@@ -43,25 +44,23 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
         mBottomSheetBehavior = BottomSheetBehavior.from(bottom_sheet)
 
         bottom_sheet_max_pop_seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(v: SeekBar?, maxPopulation: Int, fromUser: Boolean) {
-                bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, maxPopulation)
-                onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, maxPopulation)
-            }
-
+            override fun onProgressChanged(v: SeekBar?, maxPopulation: Int, fromUser: Boolean) {}
             override fun onStartTrackingTouch(v: SeekBar?) {}
 
-            override fun onStopTrackingTouch(v: SeekBar?) {}
+            override fun onStopTrackingTouch(v: SeekBar?) {
+                bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, bottom_sheet_max_pop_seek_bar.progress)
+                onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, bottom_sheet_max_pop_seek_bar.progress)
+            }
         })
 
         bottom_sheet_min_pop_seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(v: SeekBar?, minPopulation: Int, fromUser: Boolean) {
-                bottom_sheet_min_pop_title.text = getString(R.string.population_min_title, minPopulation)
-                onPopulationChanged(minPopulation, bottom_sheet_max_pop_seek_bar.progress)
-            }
-
+            override fun onProgressChanged(v: SeekBar?, minPopulation: Int, fromUser: Boolean) {}
             override fun onStartTrackingTouch(v: SeekBar?) {}
 
-            override fun onStopTrackingTouch(v: SeekBar?) {}
+            override fun onStopTrackingTouch(v: SeekBar?) {
+                bottom_sheet_min_pop_title.text = getString(R.string.population_min_title, bottom_sheet_min_pop_seek_bar.progress)
+                onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, bottom_sheet_max_pop_seek_bar.progress)
+            }
         })
 
         val model = ViewModelProviders.of(this).get(FilterMapViewModel::class.java)
@@ -77,19 +76,19 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
         nowHidden.forEach { m -> m.marker.isVisible = false }
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
+    private fun onCameraPositionChanged(cameraPosition: CameraPosition?) {
+        //TODO
+    }
+
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         val laos = LatLng(36.1075, 120.46889)
         mMap.moveCamera(CameraUpdateFactory.newLatLng(laos))
+        mMap.setOnCameraMoveListener {
+            log("Zoom level: ${mMap.cameraPosition.zoom}")
+            onCameraPositionChanged(mMap.cameraPosition)
+        }
+
         log("Map ready")
 
     }
