@@ -20,6 +20,8 @@ import kotlinx.android.synthetic.main.settings_bottom_sheet_content.*
 import se.filtermap.admdev.filteredmapview.extensions.log
 import se.filtermap.admdev.filteredmapview.model.City
 import se.filtermap.admdev.filteredmapview.model.CityMarker
+import se.filtermap.admdev.filteredmapview.model.Country
+import se.filtermap.admdev.filteredmapview.model.CountryMarker
 import se.filtermap.admdev.filteredmapview.thread.CallbackLatch
 import se.filtermap.admdev.filteredmapview.viewmodel.FilterMapViewModel
 
@@ -28,14 +30,14 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
     //TODO Utilize sheet callback or remove bottomSheetBehavior
     private lateinit var mBottomSheetBehavior: BottomSheetBehavior<NestedScrollView>
     private lateinit var mMap: GoogleMap
-    private val mMarkerManager = CityMarkerManager()
+    private val mMarkerManager = MarkerManager(10F)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_filtered_map)
         val mapAndDataLoaded = CallbackLatch(2) {
             val model = ViewModelProviders.of(this).get(FilterMapViewModel::class.java)
-            onMapAndDataLoaded(mMap, model.getPopulations().value)
+            onMapAndDataLoaded(mMap, model.getPopulations().value, model.getCountries().value)
         }
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.filtered_map) as SupportMapFragment
@@ -48,7 +50,8 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
             override fun onStartTrackingTouch(v: SeekBar?) {}
 
             override fun onStopTrackingTouch(v: SeekBar?) {
-                bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, bottom_sheet_max_pop_seek_bar.progress)
+                bottom_sheet_max_pop_title.text =
+                        getString(R.string.population_max_title, bottom_sheet_max_pop_seek_bar.progress)
                 onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, bottom_sheet_max_pop_seek_bar.progress)
             }
         })
@@ -58,7 +61,8 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
             override fun onStartTrackingTouch(v: SeekBar?) {}
 
             override fun onStopTrackingTouch(v: SeekBar?) {
-                bottom_sheet_min_pop_title.text = getString(R.string.population_min_title, bottom_sheet_min_pop_seek_bar.progress)
+                bottom_sheet_min_pop_title.text =
+                        getString(R.string.population_min_title, bottom_sheet_min_pop_seek_bar.progress)
                 onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, bottom_sheet_max_pop_seek_bar.progress)
             }
         })
@@ -68,16 +72,30 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun onPopulationChanged(minPopulation: Int, maxPopulation: Int) {
-        val showAndHide = mMarkerManager.partition { marker -> marker.city.population in minPopulation..maxPopulation }
+
+        if (mMarkerManager.isZoomedOut(mMap.cameraPosition.zoom)){
+            // TODO update country marker in zoomed out state
+            return
+        }
+
+        // TODO move some stuff to background thread
+        val showAndHide =
+            mMarkerManager.cities.partition { marker -> marker.city.population in minPopulation..maxPopulation }
         val nowVisible = showAndHide.first.filter { !it.marker.isVisible }
         val nowHidden = showAndHide.second.filter { it.marker.isVisible }
 
-        nowVisible.forEach { m -> m.marker.isVisible = true }
-        nowHidden.forEach { m -> m.marker.isVisible = false }
+        nowVisible.forEach { it.marker.isVisible = true }
+        nowHidden.forEach { it.marker.isVisible = false }
     }
 
     private fun onCameraPositionChanged(cameraPosition: CameraPosition?) {
-        //TODO
+        cameraPosition?.apply {
+            mMarkerManager.updateZoomLevel(
+                zoom,
+                bottom_sheet_min_pop_seek_bar.progress,
+                bottom_sheet_max_pop_seek_bar.progress
+            )
+        }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -85,7 +103,6 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
         val laos = LatLng(36.1075, 120.46889)
         mMap.moveCamera(CameraUpdateFactory.newLatLng(laos))
         mMap.setOnCameraMoveListener {
-            log("Zoom level: ${mMap.cameraPosition.zoom}")
             onCameraPositionChanged(mMap.cameraPosition)
         }
 
@@ -96,19 +113,36 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
         log("Population data loaded ${populations?.size}")
     }
 
-    private fun onMapAndDataLoaded(map: GoogleMap, populations: List<City>?) {
+    private fun onMapAndDataLoaded(
+        map: GoogleMap,
+        populations: List<City>?,
+        countries: List<Country>?
+    ) {
         populations?.apply {
             for (city in this) {
                 val marker = MarkerOptions().position(LatLng(city.lat, city.lng)).title(city.name)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                mMarkerManager.add(CityMarker(map.addMarker(marker), city))
+                mMarkerManager.cities.add(CityMarker(map.addMarker(marker), city))
             }
         }
 
-        bottom_sheet_min_pop_seek_bar.setProgress(400000, true)
-        bottom_sheet_max_pop_seek_bar.setProgress(500000, true)
-        bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, bottom_sheet_max_pop_seek_bar.progress)
-        bottom_sheet_min_pop_title.text = getString(R.string.population_min_title, bottom_sheet_min_pop_seek_bar.progress)
-        onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, bottom_sheet_max_pop_seek_bar.progress)
+        countries?.apply {
+            for (country in this) {
+                val marker = MarkerOptions().position(LatLng(country.lat, country.lng)).title(country.name)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                mMarkerManager.countries.add(CountryMarker(map.addMarker(marker), country))
+            }
+        }
+
+        val initialMinPop = 400000
+        val initialMaxPop = 500000
+
+        bottom_sheet_min_pop_seek_bar.setProgress(initialMinPop, true)
+        bottom_sheet_max_pop_seek_bar.setProgress(initialMaxPop, true)
+        bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, initialMinPop)
+        bottom_sheet_min_pop_title.text = getString(R.string.population_min_title, initialMaxPop)
+        onPopulationChanged(initialMinPop, initialMaxPop)
+
+        mMarkerManager.updateZoomLevel(mMap.cameraPosition.zoom, initialMinPop, initialMaxPop)
     }
 }
