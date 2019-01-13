@@ -90,7 +90,6 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         log("Map ready")
-
     }
 
     private fun onPopulationDataLoaded(populations: List<City>?) {
@@ -105,7 +104,11 @@ class FilteredMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 mMarkerManager.add(CityMarker(map.addMarker(marker), city))
             }
         }
+
         bottom_sheet_min_pop_seek_bar.setProgress(400000, true)
         bottom_sheet_max_pop_seek_bar.setProgress(500000, true)
+        bottom_sheet_max_pop_title.text = getString(R.string.population_max_title, bottom_sheet_max_pop_seek_bar.progress)
+        bottom_sheet_min_pop_title.text = getString(R.string.population_min_title, bottom_sheet_min_pop_seek_bar.progress)
+        onPopulationChanged(bottom_sheet_min_pop_seek_bar.progress, bottom_sheet_max_pop_seek_bar.progress)
     }
 }
